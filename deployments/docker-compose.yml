@@ -1,0 +1,130 @@
+version: "3"
+services:
+
+  creator:
+    image: creator:develop
+#    build: ../docker
+    container_name: creator
+#    volumes:
+#      - ../configs/config_compose.yaml:/etc/banner-rotation/config.yaml
+    ports:
+      - "8888:8888"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.2
+        aliases:
+          - creator
+
+  prometheus:
+    image: prom/prometheus:v2.39.1
+    volumes:
+      - ./prometheus:/etc/prometheus/
+    container_name: prometheus
+    hostname: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Moscow"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.3
+        aliases:
+          - prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.4.0
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    container_name: node-exporter
+    hostname: node-exporter
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    ports:
+      - 9100:9100
+    expose:
+      - 9100
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Moscow"
+    labels:
+      org.label-schema.group: "monitoring"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.100
+        aliases:
+          - node-exporter
+
+  grafana:
+    image: grafana/grafana:9.2.3
+    user: root
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+#    volumes:
+#      - ./grafana:/var/lib/grafana
+#      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    environment:
+      TZ: "Europe/Moscow"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.4
+        aliases:
+          - grafana
+
+  yandex-tank:
+#    image: direvius/yandex-tank
+    build: ./yandex-tank
+#    entrypoint: /bin/bash
+    depends_on:
+      - creator
+    volumes:
+#      - ./yandex-tank:/var/loadtest
+      - ./yandex-tank/config.yaml:/var/loadtest/config.yaml
+      - ./yandex-tank/ammo.txt:/var/loadtest/ammo.txt
+      - ./yandex-tank/start.sh:/var/loadtest/start.sh
+    container_name: yandex-tank
+    networks:
+      docker:
+        ipv4_address: 10.5.0.5
+        aliases:
+          - yandex-tank
+
+  postgres:
+    image: postgres:15.1-alpine3.17 #postgres:15.1-bullseye #postgres:14
+    container_name: postgres
+    environment:
+      POSTGRES_DB: "creator"
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "password"
+      TZ: 'UTC'
+      PGTZ: 'UTC'
+    volumes:
+      - ../migrations/postgres.sql:/docker-entrypoint-initdb.d/postgres.sql
+      - volume_postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.6
+
+volumes:
+  volume_postgres:
+
+networks:
+  docker:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16

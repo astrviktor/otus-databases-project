@@ -1,0 +1,4 @@
+[Host: 10.5.0.2:8888]
+[Connection: close]
+[User-Agent: Tank]
+0 /segment/10000

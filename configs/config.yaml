@@ -1,0 +1,9 @@
+httpserver:
+  host:
+  port: 8888
+memory:
+  dsn:
+  maxConnectAttempts:
+postgres:
+  dsn: postgres://user:password@postgres:5432/creator
+  maxConnectAttempts: 5
