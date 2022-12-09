@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/astrviktor/otus-databases-project/internal/config"
+	"github.com/astrviktor/otus-databases-project/internal/storage/mongodb"
+	"github.com/astrviktor/otus-databases-project/internal/storage/mysql"
 	"github.com/astrviktor/otus-databases-project/internal/storage/postgres"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
@@ -44,7 +46,33 @@ func (s *Server) ChangeDatabase(database string) error {
 		return nil
 	}
 
-	return errors.New("unknown database")
+	if database == "mysql" {
+		s.storage.CloseConnect()
+		s.storage = mysql.New(s.config.Mysql)
+		err := s.storage.CreateConnect()
+		if err != nil {
+			log.Println("MySQL create connection error:", err)
+			return err
+		}
+
+		log.Println("database: mysql")
+		return nil
+	}
+
+	if database == "mongodb" {
+		s.storage.CloseConnect()
+		s.storage = mongodb.New(s.config.Mongodb)
+		err := s.storage.CreateConnect()
+		if err != nil {
+			log.Println("MongoDB create connection error:", err)
+			return err
+		}
+
+		log.Println("database: mongodb")
+		return nil
+	}
+
+	return errors.New("error: trying to choose unknown database")
 }
 
 func (s *Server) Start() {
@@ -53,10 +81,11 @@ func (s *Server) Start() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/clients/", Logging(s.handleCreate))
-	mux.HandleFunc("/segment/", Logging(s.handleSegment))
 	mux.HandleFunc("/database/", Logging(s.handleDatabase))
-	//	mux.HandleFunc("/clear", Logging(s.handleClear))
+	mux.HandleFunc("/clients/", Logging(s.handleCreate))
+	mux.HandleFunc("/clients", Logging(s.handleDelete))
+	mux.HandleFunc("/segment/", Logging(s.handleSegment))
+
 	mux.Handle("/metrics", promhttp.Handler())
 
 	addr := net.JoinHostPort(s.config.HTTPServer.Host, s.config.HTTPServer.Port)
@@ -76,7 +105,7 @@ func (s *Server) Start() {
 		if err := s.srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("ListenAndServe(): %v", err)
 		}
-		log.Println("http server stopped")
+		log.Println("http server stopping")
 	}()
 }
 

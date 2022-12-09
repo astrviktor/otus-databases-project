@@ -166,14 +166,19 @@ func (s *Server) handleDatabase(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) handleClear(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
 		w.WriteHeader(http.StatusBadRequest)
-		WriteResponse(w, &ResponseError{fmt.Sprint("method must be POST")})
+		WriteResponse(w, &ResponseError{fmt.Sprint("method must be DELETE")})
 		return
 	}
 
-	s.storage.DeleteClients()
+	err := s.storage.DeleteClients()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		WriteResponse(w, &ResponseError{fmt.Sprintf("error with delete: %s", err)})
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 

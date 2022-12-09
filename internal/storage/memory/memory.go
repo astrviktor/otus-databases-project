@@ -51,6 +51,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = rand.Intn(83) + 18
 		client.Income = rand.Float64()*90000 + 10000
+		client.Next = msisdn + 1
 
 		s.clients[msisdn] = client
 	}

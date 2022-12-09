@@ -7,3 +7,9 @@ memory:
 postgres:
   dsn: postgres://user:password@postgres:5432/creator
   maxConnectAttempts: 5
+mysql:
+  dsn: user:password@tcp(10.5.0.7:3306)/creator
+  maxConnectAttempts: 5
+mongodb:
+  dsn: mongodb://root:password@10.5.0.8:27017
+  maxConnectAttempts: 5

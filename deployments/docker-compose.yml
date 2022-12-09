@@ -102,7 +102,7 @@ services:
           - yandex-tank
 
   postgres:
-    image: postgres:15.1-alpine3.17 #postgres:15.1-bullseye #postgres:14
+    image: postgres:15.1-bullseye #postgres:15.1-alpine3.17 #postgres:14
     container_name: postgres
     environment:
       POSTGRES_DB: "creator"
@@ -118,9 +118,68 @@ services:
     networks:
       docker:
         ipv4_address: 10.5.0.6
+        aliases:
+          - postgres
+
+  mysql:
+    image: mysql:8.0.31-debian #mariadb:10.9.4-jammy
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+      - MYSQL_DATABASE=creator
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    command:
+      --init-file /mysql.sql
+    volumes:
+      - volume_mysql:/var/lib/mysql
+      - ../migrations/mysql.sql:/mysql.sql
+#    expose:
+#      - "3306"
+    ports:
+      - "3306:3306"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.7
+        aliases:
+          - mysql
+
+  mongodb:
+    image: mongo:5.0.14
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - volume_mongodb:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.8
+        aliases:
+          - mongodb
+
+#  mongo-express:
+#    image: mongo-express
+#    container_name: mongo-express
+#    restart: always
+#    ports:
+#      - 8081:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+#      ME_CONFIG_MONGODB_URL: mongodb://root:password@mongodb:27017/
+#    networks:
+#      docker:
+#        ipv4_address: 10.5.0.9
+#        aliases:
+#          - mongo-express
 
 volumes:
   volume_postgres:
+  volume_mysql:
+  volume_mongodb:
 
 networks:
   docker:

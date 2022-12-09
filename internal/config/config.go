@@ -11,6 +11,8 @@ type Config struct {
 	HTTPServer HTTPServerConfig
 	Memory     DBConfig
 	Postgres   DBConfig
+	Mysql      DBConfig
+	Mongodb    DBConfig
 }
 
 type HTTPServerConfig struct {
@@ -49,6 +51,10 @@ func DefaultConfig() Config {
 		Memory: DBConfig{DSN: "",
 			MaxConnectAttempts: 0},
 		Postgres: DBConfig{DSN: "postgres://user:password@postgres:5432/creator",
+			MaxConnectAttempts: 5},
+		Mysql: DBConfig{DSN: "user:password@tcp(10.5.0.7:3306)/creator",
+			MaxConnectAttempts: 5},
+		Mongodb: DBConfig{DSN: "mongodb://root:password@10.5.0.8:27017",
 			MaxConnectAttempts: 5},
 	}
 }

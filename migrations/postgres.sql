@@ -48,12 +48,13 @@ BEGIN
 END;
 $$;
 
+-- CALL creator.create_clients(10000000);
 
 CREATE OR REPLACE PROCEDURE creator.delete_clients()
 LANGUAGE plpgsql AS
 $$
 BEGIN
-    DELETE FROM clients;
+    DELETE FROM creator.clients;
 END;
 $$;
 
@@ -68,6 +69,7 @@ BEGIN
 END;
 $$;
 
+-- CALL creator.create_segment('12345678-1234-5678-1234-567812345678',10000)
 
 
 -- CREATE OR REPLACE FUNCTION creator.create_segment(size int)
@@ -87,3 +89,5 @@ $$;
 --     return id;
 -- END;
 -- $$;
+
+-- SELECT creator.create_segment(10000)
