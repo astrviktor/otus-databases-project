@@ -82,7 +82,7 @@ func (s *Storage) CreateClients(size int) error {
 	var msisdn uint64 = 79000000000
 	var gender = [3]rune{'M', 'F', ' '}
 
-	log.Println("creating DB in MongoDB, size: ", size)
+	log.Println("Creating Clients in MongoDB, size: ", size)
 	start := time.Now()
 
 	counter := 0
@@ -95,9 +95,9 @@ func (s *Storage) CreateClients(size int) error {
 
 		client.Msisdn = msisdn
 		client.Gender = gender[rand.Intn(3)]
-		client.Age = rand.Intn(83) + 18
-		client.Income = rand.Float64()*90000 + 10000
-		client.Next = msisdn + 1
+		client.Age = uint8(rand.Intn(83) + 18)
+		client.Income = float32(rand.Intn(9000000)/100 + 10000)
+		client.Counter = 0
 
 		clients[counter-1] = client
 
@@ -118,6 +118,12 @@ func (s *Storage) CreateClients(size int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	indexModel := mongo.IndexModel{Keys: bson.D{{"counter", 1}}}
+	_, err := clientsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil {
+		return err
 	}
 
 	log.Printf("creating DB in MongoDB, time: %v \n", time.Since(start))
@@ -162,22 +168,6 @@ func (s *Storage) DeleteClients() error {
 	if err := clientsCollection.Drop(context.TODO()); err != nil {
 		return err
 	}
-	//tx, err := s.db.Begin()
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//query := `CALL delete_clients();`
-	//
-	//_, err = tx.Exec(query)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = tx.Commit()
-	//if err != nil {
-	//	return err
-	//}
 
 	return nil
 }
@@ -192,7 +182,7 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	//filter := bson.D{{}, bson.D{{"_id", 1}}}
 	filter := bson.D{}
 	//opts := options.Find().SetSort(bson.D{{"rating", -1}}).SetLimit(2).SetSkip(1)
-	opts := options.Find().SetLimit(int64(size))
+	opts := options.Find().SetSort(bson.D{{"counter", 1}}).SetLimit(int64(size))
 
 	clientsCursor, err := clientsCollection.Find(context.TODO(), filter, opts)
 	if err != nil {
@@ -207,11 +197,12 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	}
 
 	msisdns := make([]uint64, 0, size)
-	//log.Println("count of results:", len(clients))
+
 	for i := 0; i < len(clients); i++ {
 		msisdns = append(msisdns, clients[i].Msisdn)
-		//log.Println(clients[i])
+
 	}
+
 	//db.getSiblingDB("creator").getCollection("segments").insertOne(
 	//  { _id: "12345678-1234-5678-1234-567812345678", msisdns: [79852003798, 79852003799, 79852003797]}
 	//)
@@ -223,6 +214,19 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	if err != nil {
 		return id, err
 	}
+
+	//type segmentElem struct {
+	//	id     uuid.UUID
+	//	msisdn uint64
+	//}
+	//
+	//segment := make([]segmentElem, 0, size)
+	//
+	//for i := 0; i < len(clients); i++ {
+	//	msisdn := segmentElem{id, clients[i].Msisdn}
+	//
+	//	segment = append(segment, msisdn)
+	//}
 
 	return uuid.New(), nil
 }

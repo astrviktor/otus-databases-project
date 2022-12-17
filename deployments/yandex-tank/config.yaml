@@ -8,7 +8,7 @@ phantom:
 #  writelog: 0
   load_profile:
     load_type: rps
-    schedule: line(10, 100, 1m)
+    schedule: line(1, 1, 1m)
 #    schedule: const(10, 1m)
 #  header_http: "1.1"
 #  uris:

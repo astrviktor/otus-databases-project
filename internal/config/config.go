@@ -13,6 +13,7 @@ type Config struct {
 	Postgres   DBConfig
 	Mysql      DBConfig
 	Mongodb    DBConfig
+	Clickhouse DBConfig
 }
 
 type HTTPServerConfig struct {
@@ -55,6 +56,8 @@ func DefaultConfig() Config {
 		Mysql: DBConfig{DSN: "user:password@tcp(10.5.0.7:3306)/creator",
 			MaxConnectAttempts: 5},
 		Mongodb: DBConfig{DSN: "mongodb://root:password@10.5.0.8:27017",
+			MaxConnectAttempts: 5},
+		Clickhouse: DBConfig{DSN: "10.5.0.10:9000",
 			MaxConnectAttempts: 5},
 	}
 }

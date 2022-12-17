@@ -13,11 +13,11 @@ type Storage interface {
 }
 
 type Client struct {
-	Msisdn uint64  `json:"msisdn" bson:"_id,omitempty"`
-	Gender rune    `json:"gender" bson:"gender,omitempty"`
-	Age    int     `json:"age" bson:"age,omitempty"`
-	Income float64 `json:"income" bson:"income,omitempty"`
-	Next   uint64  `json:"next" bson:"next,omitempty"`
+	Msisdn  uint64  `json:"msisdn" bson:"_id"`
+	Gender  rune    `json:"gender" bson:"gender"`
+	Age     uint8   `json:"age" bson:"age"`
+	Income  float32 `json:"income" bson:"income"`
+	Counter uint32  `json:"counter" bson:"counter"`
 }
 
 type Msisdn struct {

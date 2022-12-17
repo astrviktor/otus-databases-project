@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/astrviktor/otus-databases-project/internal/config"
+	"github.com/astrviktor/otus-databases-project/internal/storage/clickhouse"
 	"github.com/astrviktor/otus-databases-project/internal/storage/mongodb"
 	"github.com/astrviktor/otus-databases-project/internal/storage/mysql"
 	"github.com/astrviktor/otus-databases-project/internal/storage/postgres"
@@ -69,6 +70,19 @@ func (s *Server) ChangeDatabase(database string) error {
 		}
 
 		log.Println("database: mongodb")
+		return nil
+	}
+
+	if database == "clickhouse" {
+		s.storage.CloseConnect()
+		s.storage = clickhouse.New(s.config.Clickhouse)
+		err := s.storage.CreateConnect()
+		if err != nil {
+			log.Println("Clickhouse create connection error:", err)
+			return err
+		}
+
+		log.Println("database: clickhouse")
 		return nil
 	}
 

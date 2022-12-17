@@ -13,3 +13,6 @@ mysql:
 mongodb:
   dsn: mongodb://root:password@10.5.0.8:27017
   maxConnectAttempts: 5
+clickhouse:
+  dsn: 10.5.0.10:9000
+  maxConnectAttempts: 5  

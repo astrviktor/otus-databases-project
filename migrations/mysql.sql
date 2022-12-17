@@ -5,18 +5,24 @@ USE creator;
 
 
 CREATE TABLE IF NOT EXISTS clients (
-    msisdn int,
+    msisdn bigint primary key,
     gender char(1),
     age tinyint,
-    income decimal(10,2)
-) ENGINE=InnoDB;
+    income decimal(10,2),
+    counter int
+) ENGINE = InnoDB;
+
+CREATE INDEX clients_counter ON creator.clients (counter);
 
 
 CREATE TABLE IF NOT EXISTS segments (
     id binary(16),
-    msisdn int
-) ENGINE=InnoDB;
+    msisdn bigint
+) ENGINE = InnoDB;
 
+# CREATE INDEX segments_id ON creator.segments (id);
+# CREATE INDEX segments_msisdn ON creator.segments (msisdn);
+CREATE INDEX segments_id_msisdn ON creator.segments (id, msisdn);
 
 DELIMITER $$
 CREATE DEFINER=`user`@`%` PROCEDURE create_clients(size int)
@@ -49,13 +55,14 @@ BEGIN
         SET age = floor(rand()*82 + 18);
         SET income = floor(rand()*90000 + 10000);
 
-        INSERT INTO creator.clients(msisdn, gender, age, income)
-        VALUES (msisdn, gender, age, income);
+        INSERT INTO creator.clients(msisdn, gender, age, income, counter)
+        VALUES (msisdn, gender, age, income, 0);
     END LOOP;
 
     COMMIT;
 END$$
 DELIMITER ;
+
 
 DELIMITER $$
 CREATE DEFINER=`user`@`%` PROCEDURE delete_clients()
@@ -70,16 +77,40 @@ DELIMITER ;
 
 
 DELIMITER $$
-CREATE DEFINER=`user`@`%` PROCEDURE create_segment(id binary(16), size int)
+CREATE DEFINER=`user`@`%` PROCEDURE create_segment(idx binary(16), size int)
 BEGIN
     START TRANSACTION;
 
     INSERT INTO creator.segments(id, msisdn)
-    SELECT id, msisdn
+    SELECT idx, msisdn
     FROM creator.clients
+    ORDER BY counter
     LIMIT size;
 
-COMMIT;
+    UPDATE creator.clients
+    SET counter = counter + 1
+    WHERE msisdn IN (
+        SELECT msisdn
+        FROM creator.segments
+        WHERE id = idx);
+
+    COMMIT;
 END$$
 DELIMITER ;
+
+
+# DELIMITER $$
+# CREATE DEFINER=`user`@`%` TRIGGER update_creator_trigger AFTER INSERT ON creator.segments
+# FOR EACH ROW
+# BEGIN
+#     UPDATE creator.clients
+#     SET counter = counter + 1
+#     WHERE msisdn = new.msisdn;
+# END$$
+# DELIMITER ;
+
+# ERROR:  Error 1442 (HY000): Can't update table 'clients' in stored function/trigger because
+#     it is already used by statement which invoked this stored function/trigger.
+
+
 

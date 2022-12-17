@@ -122,20 +122,22 @@ services:
           - postgres
 
   mysql:
-    image: mysql:8.0.31-debian #mariadb:10.9.4-jammy
+    image: mysql:8.0.31-debian #mariadb:10.9.4-jammy #mysql:5.7.40-debian
     container_name: mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=12345
+      - MYSQL_ROOT_PASSWORD=password
       - MYSQL_DATABASE=creator
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password
     command:
       --init-file /mysql.sql
+#      --log-bin-trust-function-creators 1
     volumes:
+#      - ./mysql.conf:/etc/mysql/conf.d
       - volume_mysql:/var/lib/mysql
       - ../migrations/mysql.sql:/mysql.sql
-#    expose:
-#      - "3306"
+    expose:
+      - "3306"
     ports:
       - "3306:3306"
     networks:
@@ -176,10 +178,27 @@ services:
 #        aliases:
 #          - mongo-express
 
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:22.8.11.15-alpine
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - volume_clickhouse:/var/lib/clickhouse
+      - ../migrations/clickhouse.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      docker:
+        ipv4_address: 10.5.0.10
+        aliases:
+          - clickhouse
+
 volumes:
   volume_postgres:
   volume_mysql:
   volume_mongodb:
+  volume_clickhouse:
 
 networks:
   docker:

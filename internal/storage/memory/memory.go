@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type Storage struct {
-	clients  map[uint64]storage.Client
+	clients  []storage.Client
 	segments map[uuid.UUID][]storage.Msisdn
 	mutex    *sync.RWMutex
 }
@@ -20,7 +21,7 @@ func New() *Storage {
 	mutex := sync.RWMutex{}
 
 	return &Storage{
-		clients:  make(map[uint64]storage.Client),
+		clients:  make([]storage.Client, 0),
 		segments: make(map[uuid.UUID][]storage.Msisdn),
 		mutex:    &mutex,
 	}
@@ -49,11 +50,11 @@ func (s *Storage) CreateClients(size int) error {
 
 		client.Msisdn = msisdn
 		client.Gender = gender[rand.Intn(3)]
-		client.Age = rand.Intn(83) + 18
-		client.Income = rand.Float64()*90000 + 10000
-		client.Next = msisdn + 1
+		client.Age = uint8(rand.Intn(83) + 18)
+		client.Income = float32(rand.Intn(9000000)/100 + 10000)
+		client.Counter = 0
 
-		s.clients[msisdn] = client
+		s.clients = append(s.clients, client)
 	}
 
 	log.Printf("creating DB in memory, time: %v \n", time.Since(start))
@@ -65,9 +66,10 @@ func (s *Storage) CreateClients(size int) error {
 func (s *Storage) DeleteClients() error {
 	s.mutex.Lock()
 
-	for client := range s.clients {
-		delete(s.clients, client)
-	}
+	s.clients = nil
+	//for client := range s.clients {
+	//	delete(s.clients, client)
+	//}
 
 	for segment := range s.segments {
 		delete(s.segments, segment)
@@ -81,14 +83,17 @@ func (s *Storage) DeleteClients() error {
 func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	s.mutex.Lock()
 
+	sort.Slice(s.clients, func(i, j int) bool {
+		return s.clients[i].Counter < s.clients[j].Counter
+	})
+
 	uuid := uuid.New()
 
 	clients := make([]storage.Msisdn, size, size)
 
-	var msisdn uint64
 	for i := 0; i < size; i++ {
-		msisdn = 79000000000 + uint64(i) + 1
-		clients[i].Msisdn = s.clients[msisdn].Msisdn
+		clients[i].Msisdn = s.clients[i].Msisdn
+		s.clients[i].Counter = s.clients[i].Counter + 1
 	}
 	s.segments[uuid] = clients
 

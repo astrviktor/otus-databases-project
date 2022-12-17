@@ -6,18 +6,23 @@ CREATE SCHEMA IF NOT EXISTS creator;
 
 
 CREATE TABLE IF NOT EXISTS creator.clients (
-    msisdn int4,
+    msisdn bigint primary key,
     gender char(1),
     age smallint,
-    income decimal(10,2)
+    income decimal(10,2),
+    counter integer
 );
 
+CREATE INDEX clients_counter ON creator.clients (counter);
 
 CREATE TABLE IF NOT EXISTS creator.segments (
     id uuid,
-    msisdn int4
+    msisdn bigint
 );
 
+-- CREATE INDEX segments_id ON creator.segments (id);
+-- CREATE INDEX segments_msisdn ON creator.segments (msisdn);
+CREATE INDEX segments_id_msisdn ON creator.segments (id, msisdn);
 
 CREATE OR REPLACE PROCEDURE creator.create_clients(size int)
 LANGUAGE plpgsql AS
@@ -42,8 +47,8 @@ BEGIN
         age := (random()*82 + 18)::int;
         income := (random()*90000 + 10000)::int;
 
-        INSERT INTO creator.clients (msisdn, gender, age, income)
-        VALUES (msisdn, gender, age, income);
+        INSERT INTO creator.clients (msisdn, gender, age, income, counter)
+        VALUES (msisdn, gender, age, income, 0);
     END LOOP;
 END;
 $$;
@@ -58,16 +63,41 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE creator.create_segment(id uuid, size int)
+
+CREATE OR REPLACE PROCEDURE creator.create_segment(idx uuid, size int)
 LANGUAGE plpgsql AS
 $$
 BEGIN
     INSERT INTO creator.segments(id, msisdn)
-    SELECT id, msisdn
+    SELECT idx, msisdn
     FROM creator.clients
+    ORDER BY counter
     LIMIT size;
+
+--     UPDATE creator.clients
+--     SET counter = counter + 1
+--     WHERE msisdn IN (
+--         SELECT msisdn
+--         FROM creator.segments
+--         WHERE id = idx);
+
 END;
 $$;
+
+
+-- CREATE OR REPLACE FUNCTION creator.update_counter_trigger() RETURNS TRIGGER AS $$
+-- BEGIN
+--     UPDATE creator.clients
+--     SET counter = counter + 1
+--     WHERE msisdn = new.msisdn;
+--
+--     RETURN new;
+-- END
+-- $$ LANGUAGE plpgsql;
+--
+-- CREATE OR REPLACE TRIGGER counter_trigger BEFORE INSERT ON creator.segments
+--     FOR EACH ROW EXECUTE PROCEDURE creator.update_counter_trigger();
+
 
 -- CALL creator.create_segment('12345678-1234-5678-1234-567812345678',10000)
 
