@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/astrviktor/otus-databases-project/internal/config"
@@ -19,14 +20,20 @@ import (
 type Storage struct {
 	dsn                  string
 	dbMaxConnectAttempts int
+	mutex                *sync.RWMutex
 	client               *mongo.Client
+	segments             []uuid.UUID
 }
 
 func New(config config.DBConfig) *Storage {
+	mutex := sync.RWMutex{}
+
 	return &Storage{
 		dsn:                  config.DSN,
 		dbMaxConnectAttempts: config.MaxConnectAttempts,
+		mutex:                &mutex,
 		client:               nil,
+		segments:             nil,
 	}
 }
 
@@ -67,9 +74,10 @@ func (s *Storage) CreateConnect() error {
 func (s *Storage) CloseConnect() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	if err := s.client.Disconnect(ctx); err != nil {
-		log.Printf("failed to close MongoDB: %s", err)
+	if s.client != nil {
+		if err := s.client.Disconnect(ctx); err != nil {
+			log.Printf("failed to close MongoDB: %s", err)
+		}
 	}
 }
 
@@ -126,6 +134,13 @@ func (s *Storage) CreateClients(size int) error {
 		return err
 	}
 
+	indexModel = mongo.IndexModel{Keys: bson.D{{"id", 1}}}
+	segmentsCollection := s.client.Database("creator").Collection("segments")
+	_, err = segmentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("creating DB in MongoDB, time: %v \n", time.Since(start))
 
 	//clients := []interface{}{
@@ -176,6 +191,9 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	//db.getSiblingDB("creator").getCollection("clients").find({},{_id: 1}).limit(size)
 
 	id := uuid.New()
+	s.mutex.Lock()
+	s.segments = append(s.segments, id)
+	s.mutex.Unlock()
 
 	clientsCollection := s.client.Database("creator").Collection("clients")
 
@@ -196,24 +214,39 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
-	msisdns := make([]uint64, 0, size)
+	segment := make([]interface{}, size, size)
 
 	for i := 0; i < len(clients); i++ {
-		msisdns = append(msisdns, clients[i].Msisdn)
+		segmentItem := storage.SegmentItem{
+			Id:     id.String(),
+			Msisdn: clients[i].Msisdn,
+		}
+		segment[i] = segmentItem
+	}
 
+	segmentsCollection := s.client.Database("creator").Collection("segments")
+	_, err = segmentsCollection.InsertMany(context.TODO(), segment)
+	if err != nil {
+		return id, err
 	}
 
 	//db.getSiblingDB("creator").getCollection("segments").insertOne(
 	//  { _id: "12345678-1234-5678-1234-567812345678", msisdns: [79852003798, 79852003799, 79852003797]}
 	//)
 
-	segmentsCollection := s.client.Database("creator").Collection("segments")
+	//segmentsCollection := s.client.Database("creator").Collection("segments")
+	//
+	//segment := bson.D{{"_id", id.String()}, {"msisdns", msisdns}}
+	//_, err = segmentsCollection.InsertOne(context.TODO(), segment)
+	//if err != nil {
+	//	return id, err
+	//}
 
-	segment := bson.D{{"_id", id.String()}, {"msisdns", msisdns}}
-	_, err = segmentsCollection.InsertOne(context.TODO(), segment)
-	if err != nil {
-		return id, err
-	}
+	//db.getSiblingDB("creator").getCollection("segments").insertMany(
+	//  { id: "12345678-1234-5678-1234-567812345678", msisdn: 79852003798},
+	//  { id: "12345678-1234-5678-1234-567812345678", msisdn: 79852003799}
+	// , 79852003799, 79852003797]}
+	//)
 
 	//type segmentElem struct {
 	//	id     uuid.UUID
@@ -228,5 +261,38 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	//	segment = append(segment, msisdn)
 	//}
 
-	return uuid.New(), nil
+	return id, nil
+}
+
+func (s *Storage) GetSegment() (uuid.UUID, int, error) {
+	//db.getSiblingDB("creator").getCollection("segments").find({id: "12345678-1234-5678-1234-567812345678"},{msisdn:1, _id:0})
+
+	s.mutex.RLock()
+	count := len(s.segments)
+	n := rand.Intn(count)
+	id := s.segments[n]
+	s.mutex.RUnlock()
+
+	//msisdns := make([]storage.Msisdn, 0)
+
+	segmentsCollection := s.client.Database("creator").Collection("segments")
+
+	//filter := bson.D{{}, bson.D{{"_id", 1}}}
+	filter := bson.D{{"id", id.String()}}
+	//opts := options.Find().SetSort(bson.D{{"rating", -1}}).SetLimit(2).SetSkip(1)
+	opts := options.Find().SetProjection(bson.D{{"msisdn", 1}, {"_id", 0}})
+
+	clientsCursor, err := segmentsCollection.Find(context.TODO(), filter, opts)
+	if err != nil {
+		return id, 0, err
+	}
+
+	//msisdns := make([]uint64, size, size)
+	//var results []bson.M
+	msisdns := make([]storage.Msisdn, 0)
+	if err = clientsCursor.All(context.TODO(), &msisdns); err != nil {
+		return id, 0, err
+	}
+
+	return id, len(msisdns), nil
 }

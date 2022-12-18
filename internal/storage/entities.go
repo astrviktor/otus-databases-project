@@ -10,6 +10,7 @@ type Storage interface {
 	CreateClients(size int) error
 	DeleteClients() error
 	CreateSegment(size int) (uuid.UUID, error)
+	GetSegment() (uuid.UUID, int, error)
 }
 
 type Client struct {
@@ -21,5 +22,10 @@ type Client struct {
 }
 
 type Msisdn struct {
+	Msisdn uint64 `json:"msisdn"`
+}
+
+type SegmentItem struct {
+	Id     string `json:"id"`
 	Msisdn uint64 `json:"msisdn"`
 }

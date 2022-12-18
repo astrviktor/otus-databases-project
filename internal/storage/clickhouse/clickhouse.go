@@ -2,10 +2,12 @@ package clickhouse
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/astrviktor/otus-databases-project/internal/storage"
 	"github.com/google/uuid"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -16,14 +18,20 @@ import (
 type Storage struct {
 	dsn                  string
 	dbMaxConnectAttempts int
+	mutex                *sync.RWMutex
 	db                   *sql.DB
+	segments             []uuid.UUID
 }
 
 func New(config config.DBConfig) *Storage {
+	mutex := sync.RWMutex{}
+
 	return &Storage{
 		dsn:                  config.DSN,
 		dbMaxConnectAttempts: config.MaxConnectAttempts,
+		mutex:                &mutex,
 		db:                   nil,
+		segments:             nil,
 	}
 }
 
@@ -79,8 +87,10 @@ func (s *Storage) CreateConnect() error {
 }
 
 func (s *Storage) CloseConnect() {
-	if err := s.db.Close(); err != nil {
-		log.Printf("failed to close clickhouse db: %s", err)
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			log.Printf("failed to close clickhouse db: %s", err)
+		}
 	}
 }
 
@@ -289,6 +299,9 @@ func (s *Storage) DeleteClients() error {
 
 func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	id := uuid.New()
+	s.mutex.Lock()
+	s.segments = append(s.segments, id)
+	s.mutex.Unlock()
 	//idWithoutHyphens := strings.Replace(id.String(), "-", "", -1)
 
 	start := time.Now()
@@ -466,4 +479,44 @@ func (s *Storage) CreateClientsBatch(clients []storage.Client) error {
 	}
 
 	return nil
+}
+
+func (s *Storage) GetSegment() (uuid.UUID, int, error) {
+	s.mutex.RLock()
+	count := len(s.segments)
+	n := rand.Intn(count)
+	id := s.segments[n]
+	s.mutex.RUnlock()
+
+	msisdns := make([]storage.Msisdn, 0)
+
+	query := `SELECT msisdn
+	FROM creator.segments 
+	WHERE id = $1;`
+
+	rows, err := s.db.Query(query, id)
+	if err != nil {
+		return id, 0, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var msisdn uint64
+		err = rows.Scan(&msisdn)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			break
+		}
+
+		if err != nil {
+			return id, 0, err
+		}
+
+		if rows.Err() != nil {
+			return id, 0, err
+		}
+		msisdns = append(msisdns, storage.Msisdn{Msisdn: msisdn})
+	}
+
+	return id, len(msisdns), nil
 }

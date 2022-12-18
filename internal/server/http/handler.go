@@ -27,6 +27,11 @@ type ResponseUUID struct {
 	UUID uuid.UUID `json:"uuid"`
 }
 
+type ResponseSegment struct {
+	UUID uuid.UUID `json:"uuid"`
+	Size int       `json:"size"`
+}
+
 //type ResponseStat struct {
 //	ShowCount  int `json:"showCount"`
 //	ClickCount int `json:"clickCount"`
@@ -37,7 +42,10 @@ func WriteResponse(w http.ResponseWriter, resp interface{}) {
 	if err != nil {
 		log.Println(fmt.Sprintf("response marshal error: %s", err))
 	}
+
+	resBuf = append(resBuf, []byte("\n")...)
 	_, err = w.Write(resBuf)
+
 	if err != nil {
 		log.Println(fmt.Sprintf("response marshal error: %s", err))
 	}
@@ -67,7 +75,7 @@ func WriteResponse(w http.ResponseWriter, resp interface{}) {
 
 // curl --request POST 'http://127.0.0.1:8888/segment/10000'
 
-func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCreateClients(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
 		WriteResponse(w, &ResponseError{fmt.Sprint("method must be POST")})
@@ -99,7 +107,7 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) handleSegment(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCreateSegment(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
 		WriteResponse(w, &ResponseError{fmt.Sprint("method must be POST")})
@@ -137,7 +145,7 @@ func (s *Server) handleSegment(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) handleDatabase(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleChangeDatabase(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
 		WriteResponse(w, &ResponseError{fmt.Sprint("method must be POST")})
@@ -166,7 +174,7 @@ func (s *Server) handleDatabase(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleDeleteClients(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		w.WriteHeader(http.StatusBadRequest)
 		WriteResponse(w, &ResponseError{fmt.Sprint("method must be DELETE")})
@@ -181,6 +189,26 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+
+	return
+}
+
+func (s *Server) handleGetSegment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		WriteResponse(w, &ResponseError{fmt.Sprint("method must be GET")})
+		return
+	}
+
+	id, size, err := s.storage.GetSegment()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		WriteResponse(w, &ResponseError{fmt.Sprintf("error with get segment: %s", err)})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	WriteResponse(w, &ResponseSegment{UUID: id, Size: size})
 
 	return
 }

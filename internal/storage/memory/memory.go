@@ -101,3 +101,9 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 
 	return uuid, nil
 }
+
+func (s *Storage) GetSegment() (uuid.UUID, int, error) {
+	id := uuid.New()
+
+	return id, 0, nil
+}

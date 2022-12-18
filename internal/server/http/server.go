@@ -95,10 +95,11 @@ func (s *Server) Start() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/database/", Logging(s.handleDatabase))
-	mux.HandleFunc("/clients/", Logging(s.handleCreate))
-	mux.HandleFunc("/clients", Logging(s.handleDelete))
-	mux.HandleFunc("/segment/", Logging(s.handleSegment))
+	mux.HandleFunc("/database/", Logging(s.handleChangeDatabase))
+	mux.HandleFunc("/clients/", Logging(s.handleCreateClients))
+	mux.HandleFunc("/clients", Logging(s.handleDeleteClients))
+	mux.HandleFunc("/segment/", Logging(s.handleCreateSegment))
+	mux.HandleFunc("/segment", Logging(s.handleGetSegment))
 
 	mux.Handle("/metrics", promhttp.Handler())
 

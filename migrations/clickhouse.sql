@@ -18,17 +18,17 @@ PARTITION BY id
 ORDER BY (id);
 
 
-CREATE TABLE IF NOT EXISTS creator.counters (
-    msisdn UInt64,
-    counter UInt32
-) ENGINE = MergeTree()
-ORDER BY (msisdn);
+-- CREATE TABLE IF NOT EXISTS creator.counters (
+--     msisdn UInt64,
+--     counter UInt32
+-- ) ENGINE = MergeTree()
+-- ORDER BY (msisdn);
 
-
-CREATE VIEW IF NOT EXISTS creator.sum_msisdn_counter
-AS SELECT msisdn, sum(counter) as sum_counter
-   FROM creator.counters
-   GROUP BY msisdn;
+--
+-- CREATE VIEW IF NOT EXISTS creator.sum_msisdn_counter
+-- AS SELECT msisdn, sum(counter) as sum_counter
+--    FROM creator.counters
+--    GROUP BY msisdn;
 
 
 SET mutations_sync = 1;

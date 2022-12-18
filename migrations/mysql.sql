@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS segments (
     id binary(16),
     msisdn bigint
 ) ENGINE = InnoDB;
+# PARTITION BY KEY(id)
+# PARTITIONS 10;
 
 # CREATE INDEX segments_id ON creator.segments (id);
 # CREATE INDEX segments_msisdn ON creator.segments (msisdn);

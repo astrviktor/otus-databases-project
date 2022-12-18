@@ -90,10 +90,11 @@ services:
     depends_on:
       - creator
     volumes:
-#      - ./yandex-tank:/var/loadtest
-      - ./yandex-tank/config.yaml:/var/loadtest/config.yaml
+      - ./yandex-tank/create-segment.yaml:/var/loadtest/create-segment.yaml
+      - ./yandex-tank/create-segment.sh:/var/loadtest/create-segment.sh
       - ./yandex-tank/ammo.txt:/var/loadtest/ammo.txt
-      - ./yandex-tank/start.sh:/var/loadtest/start.sh
+      - ./yandex-tank/get-segment.yaml:/var/loadtest/get-segment.yaml
+      - ./yandex-tank/get-segment.sh:/var/loadtest/get-segment.sh
     container_name: yandex-tank
     networks:
       docker:
