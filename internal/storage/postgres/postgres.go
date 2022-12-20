@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/astrviktor/otus-databases-project/internal/storage"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"math/rand"
 	"sync"
@@ -21,7 +22,7 @@ type Storage struct {
 	dsn                  string
 	dbMaxConnectAttempts int
 	mutex                *sync.RWMutex
-	db                   *pgx.Conn
+	db                   *pgxpool.Pool
 	segments             []uuid.UUID
 }
 
@@ -39,7 +40,7 @@ func New(config config.DBConfig) *Storage {
 
 func (s *Storage) CreateConnect() error {
 	//db, err := sql.Open("pgx", s.dsn)
-	db, err := pgx.Connect(context.Background(), s.dsn) //os.Getenv("DATABASE_URL"))
+	db, err := pgxpool.New(context.Background(), s.dsn) //os.Getenv("DATABASE_URL"))
 
 	if err != nil {
 		log.Println("ERROR connect 1: ", err.Error())
@@ -60,6 +61,7 @@ func (s *Storage) CreateConnect() error {
 		return err
 	}
 
+	//db.ConnPoolConfig.MaxConnections
 	//db.SetMaxOpenConns(100)
 	s.db = db
 
@@ -70,9 +72,10 @@ func (s *Storage) CreateConnect() error {
 
 func (s *Storage) CloseConnect() {
 	if s.db != nil {
-		if err := s.db.Close(context.Background()); err != nil {
-			log.Printf("failed to close db: %s", err)
-		}
+		s.db.Close()
+		//if err := s.db.Close(); err != nil {
+		//	log.Printf("failed to close db: %s", err)
+		//}
 	}
 }
 
@@ -87,6 +90,7 @@ func (s *Storage) CreateClients(size int) error {
 	start := time.Now()
 
 	counter := 0
+	date := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
 
 	for i := 0; i < size; i++ {
 		client := storage.Client{}
@@ -98,7 +102,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = uint8(rand.Intn(83) + 18)
 		client.Income = float32(rand.Intn(9000000)/100 + 10000)
-		client.Counter = 0
+		client.NextUse = date
 
 		clients[counter-1] = client
 
@@ -205,13 +209,21 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
+	//segmentQuery := `INSERT INTO creator.segments(id, msisdn)
+	//SELECT $1,msisdn
+	//   FROM creator.clients
+	//   ORDER BY counter
+	//   LIMIT $2;`
+
+	date := time.Now()
+
 	segmentQuery := `INSERT INTO creator.segments(id, msisdn)
 	SELECT $1,msisdn
-	   FROM creator.clients
-       ORDER BY counter
-  	   LIMIT $2;`
+	FROM creator.clients
+    WHERE nextuse < $2
+  	LIMIT $3;`
 
-	_, err = tx.Exec(context.Background(), segmentQuery, id, size)
+	_, err = tx.Exec(context.Background(), segmentQuery, id, date.Format("2006-01-02"), size)
 	if err != nil {
 		log.Println("ERROR segment 4: ", err.Error())
 		return id, err
@@ -232,13 +244,17 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
-	counterQuery := `UPDATE creator.clients
-	SET counter = counter + 1
-	WHERE msisdn in (select msisdn from creator.segments where id = $1);`
+	//counterQuery := `UPDATE creator.clients
+	//SET counter = counter + 1
+	//WHERE msisdn in (select msisdn from creator.segments where id = $1);`
+	next := date.AddDate(0, 0, 10)
 
+	counterQuery := `UPDATE creator.clients
+	SET nextuse = $1
+	WHERE msisdn in (select msisdn from creator.segments where id = $2);`
 	//creator.` + idWithoutHyphens + `);`
 
-	_, err = tx.Exec(context.Background(), counterQuery, id)
+	_, err = tx.Exec(context.Background(), counterQuery, next.Format("2006-01-02"), id)
 	if err != nil {
 		log.Println("ERROR segment 6: ", err.Error())
 		return id, err
@@ -317,7 +333,7 @@ func (s *Storage) CreateClientsBatch(clients []storage.Client) error {
 	values := [][]interface{}{}
 	for _, client := range clients {
 		value := []interface{}{
-			client.Msisdn, string(client.Gender), client.Age, client.Income, client.Counter,
+			client.Msisdn, string(client.Gender), client.Age, client.Income, client.NextUse,
 		}
 
 		values = append(values, value)
@@ -333,7 +349,7 @@ func (s *Storage) CreateClientsBatch(clients []storage.Client) error {
 
 	_, err := s.db.CopyFrom(context.Background(),
 		pgx.Identifier{"creator", "clients"},
-		[]string{"msisdn", "gender", "age", "income", "counter"},
+		[]string{"msisdn", "gender", "age", "income", "nextuse"},
 		pgx.CopyFromRows(values),
 	)
 

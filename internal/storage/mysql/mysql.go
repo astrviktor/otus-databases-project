@@ -82,6 +82,7 @@ func (s *Storage) CreateClients(size int) error {
 	start := time.Now()
 
 	counter := 0
+	date := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
 
 	for i := 0; i < size; i++ {
 		client := storage.Client{}
@@ -93,7 +94,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = uint8(rand.Intn(83) + 18)
 		client.Income = float32(rand.Intn(9000000)/100 + 10000)
-		client.Counter = 0
+		client.NextUse = date
 
 		clients[counter-1] = client
 
@@ -221,17 +222,25 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
+	date := time.Now()
+
 	segmentQuery := `INSERT INTO creator.segments(id, msisdn)
 	SELECT UUID_TO_BIN(?),msisdn
-	   FROM creator.clients
-       ORDER BY counter
-  	   LIMIT ?;`
+	FROM creator.clients
+	WHERE nextuse < ?
+	LIMIT ?;`
 
-	_, err = tx.Exec(segmentQuery, id, size)
+	//segmentQuery := `INSERT INTO creator.segments(id, msisdn)
+	//SELECT UUID_TO_BIN('` + id.String() + `'),msisdn
+	//FROM creator.clients WHERE nextuse < '` + date.Format("2006-01-02") +
+	//	`' LIMIT ` + strconv.Itoa(size) + `;`
+
+	_, err = tx.Exec(segmentQuery, id, date.Format("2006-01-02"), size)
 	if err != nil {
 		log.Println("ERROR segment 4: ", err.Error())
 		return id, err
 	}
+	log.Println("SQL:", segmentQuery)
 
 	err = tx.Commit()
 	if err != nil {
@@ -248,13 +257,15 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
+	next := date.AddDate(0, 0, 10)
+
 	counterQuery := `UPDATE creator.clients
-	SET counter = counter + 1
+	SET nextuse = ?
 	WHERE msisdn in (select msisdn from creator.segments where id = UUID_TO_BIN(?));`
 
 	//creator.` + idWithoutHyphens + `);`
 
-	_, err = tx.Exec(counterQuery, id)
+	_, err = tx.Exec(counterQuery, next.Format("2006-01-02"), id)
 	if err != nil {
 		log.Println("ERROR segment 6: ", err.Error())
 		return id, err
@@ -332,10 +343,10 @@ func (s *Storage) CreateClientsBatch(clients []storage.Client) error {
 		valueArgs = append(valueArgs, string(client.Gender))
 		valueArgs = append(valueArgs, client.Age)
 		valueArgs = append(valueArgs, client.Income)
-		valueArgs = append(valueArgs, client.Counter)
+		valueArgs = append(valueArgs, client.NextUse)
 	}
 
-	query := "INSERT INTO creator.clients (msisdn, gender, age, income, counter) VALUES %s"
+	query := "INSERT INTO creator.clients (msisdn, gender, age, income, nextuse) VALUES %s"
 
 	query = fmt.Sprintf(query, strings.Join(valueStrings, ","))
 	//fmt.Println("query:", query)

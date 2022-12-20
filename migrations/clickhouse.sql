@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS creator.clients (
     gender char(1),
     age UInt8,
     income Float32,
-    counter UInt32
+    nextuse Date
 ) ENGINE = MergeTree()
 ORDER BY (msisdn);
 

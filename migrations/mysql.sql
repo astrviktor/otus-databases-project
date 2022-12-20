@@ -9,10 +9,11 @@ CREATE TABLE IF NOT EXISTS clients (
     gender char(1),
     age tinyint,
     income decimal(10,2),
-    counter int
+    nextuse date
 ) ENGINE = InnoDB;
 
-CREATE INDEX clients_counter ON creator.clients (counter);
+# CREATE INDEX clients_counter ON creator.clients (counter);
+# CREATE INDEX clients_nextuse ON creator.clients (nextuse);
 
 
 CREATE TABLE IF NOT EXISTS segments (

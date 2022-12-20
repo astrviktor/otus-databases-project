@@ -10,10 +10,11 @@ CREATE TABLE IF NOT EXISTS creator.clients (
     gender char(1),
     age smallint,
     income decimal(10,2),
-    counter integer
+    nextuse date
 );
 
-CREATE INDEX clients_counter ON creator.clients (counter);
+-- CREATE INDEX clients_counter ON creator.clients (counter);
+-- CREATE INDEX clients_nextuse ON creator.clients (nextuse);
 
 CREATE TABLE IF NOT EXISTS creator.segments (
     id uuid,
@@ -24,34 +25,34 @@ CREATE TABLE IF NOT EXISTS creator.segments (
 -- CREATE INDEX segments_msisdn ON creator.segments (msisdn);
 CREATE INDEX segments_id_msisdn ON creator.segments (id, msisdn);
 
-CREATE OR REPLACE PROCEDURE creator.create_clients(size int)
-LANGUAGE plpgsql AS
-$$
-DECLARE
-    msisdn int4;
-    gender char(1);
-    age smallint;
-    income decimal(10,2);
-BEGIN
-    msisdn := 100000000;
-
-    FOR i IN 1..size LOOP
-        msisdn := msisdn + 1;
-
-        CASE (random()*2)::int
-            WHEN 0 THEN gender := 'M';
-            WHEN 1 THEN gender := 'F';
-            ELSE gender := '';
-        END CASE;
-
-        age := (random()*82 + 18)::int;
-        income := (random()*90000 + 10000)::int;
-
-        INSERT INTO creator.clients (msisdn, gender, age, income, counter)
-        VALUES (msisdn, gender, age, income, 0);
-    END LOOP;
-END;
-$$;
+-- CREATE OR REPLACE PROCEDURE creator.create_clients(size int)
+-- LANGUAGE plpgsql AS
+-- $$
+-- DECLARE
+--     msisdn int4;
+--     gender char(1);
+--     age smallint;
+--     income decimal(10,2);
+-- BEGIN
+--     msisdn := 100000000;
+--
+--     FOR i IN 1..size LOOP
+--         msisdn := msisdn + 1;
+--
+--         CASE (random()*2)::int
+--             WHEN 0 THEN gender := 'M';
+--             WHEN 1 THEN gender := 'F';
+--             ELSE gender := '';
+--         END CASE;
+--
+--         age := (random()*82 + 18)::int;
+--         income := (random()*90000 + 10000)::int;
+--
+--         INSERT INTO creator.clients (msisdn, gender, age, income, counter)
+--         VALUES (msisdn, gender, age, income, 0);
+--     END LOOP;
+-- END;
+-- $$;
 
 -- CALL creator.create_clients(10000000);
 

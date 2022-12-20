@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/google/uuid"
+	"time"
 )
 
 type Storage interface {
@@ -18,14 +19,22 @@ type Client struct {
 	Gender  rune    `json:"gender" bson:"gender"`
 	Age     uint8   `json:"age" bson:"age"`
 	Income  float32 `json:"income" bson:"income"`
-	Counter uint32  `json:"counter" bson:"counter"`
+	NextUse string  `json:"nextuse" bson:"nextuse"`
+}
+
+type ClientMongo struct {
+	Msisdn  uint64    `json:"msisdn" bson:"_id"`
+	Gender  rune      `json:"gender" bson:"gender"`
+	Age     uint8     `json:"age" bson:"age"`
+	Income  float32   `json:"income" bson:"income"`
+	NextUse time.Time `json:"nextuse" bson:"nextuse"`
 }
 
 type Msisdn struct {
-	Msisdn uint64 `json:"msisdn"`
+	Msisdn uint64 `json:"msisdn" bson:"_id"`
 }
 
 type SegmentItem struct {
-	Id     string `json:"id"`
-	Msisdn uint64 `json:"msisdn"`
+	Id     string `json:"id" bson:"id"`
+	Msisdn uint64 `json:"msisdn" bson:"msisdn"`
 }

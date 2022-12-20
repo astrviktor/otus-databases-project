@@ -4,7 +4,6 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
@@ -43,6 +42,7 @@ func (s *Storage) CreateClients(size int) error {
 	log.Println("creating DB in memory, size: ", size)
 	start := time.Now()
 
+	date := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
 	for i := 0; i < size; i++ {
 		client := storage.Client{}
 
@@ -52,7 +52,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = uint8(rand.Intn(83) + 18)
 		client.Income = float32(rand.Intn(9000000)/100 + 10000)
-		client.Counter = 0
+		client.NextUse = date
 
 		s.clients = append(s.clients, client)
 	}
@@ -81,23 +81,25 @@ func (s *Storage) DeleteClients() error {
 }
 
 func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
-	s.mutex.Lock()
-
-	sort.Slice(s.clients, func(i, j int) bool {
-		return s.clients[i].Counter < s.clients[j].Counter
-	})
-
 	uuid := uuid.New()
 
-	clients := make([]storage.Msisdn, size, size)
-
-	for i := 0; i < size; i++ {
-		clients[i].Msisdn = s.clients[i].Msisdn
-		s.clients[i].Counter = s.clients[i].Counter + 1
-	}
-	s.segments[uuid] = clients
-
-	s.mutex.Unlock()
+	//s.mutex.Lock()
+	//
+	//sort.Slice(s.clients, func(i, j int) bool {
+	//	return s.clients[i].Counter < s.clients[j].Counter
+	//})
+	//
+	//
+	//
+	//clients := make([]storage.Msisdn, size, size)
+	//
+	//for i := 0; i < size; i++ {
+	//	clients[i].Msisdn = s.clients[i].Msisdn
+	//	s.clients[i].Counter = s.clients[i].Counter + 1
+	//}
+	//s.segments[uuid] = clients
+	//
+	//s.mutex.Unlock()
 
 	return uuid, nil
 }

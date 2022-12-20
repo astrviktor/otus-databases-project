@@ -94,9 +94,11 @@ func (s *Storage) CreateClients(size int) error {
 	start := time.Now()
 
 	counter := 0
+	date := time.Now().UTC().AddDate(0, 0, -10) //.Format("2006-01-02")
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 
 	for i := 0; i < size; i++ {
-		client := storage.Client{}
+		client := storage.ClientMongo{}
 
 		msisdn++
 		counter++
@@ -105,7 +107,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = uint8(rand.Intn(83) + 18)
 		client.Income = float32(rand.Intn(9000000)/100 + 10000)
-		client.Counter = 0
+		client.NextUse = date
 
 		clients[counter-1] = client
 
@@ -128,15 +130,15 @@ func (s *Storage) CreateClients(size int) error {
 		}
 	}
 
-	indexModel := mongo.IndexModel{Keys: bson.D{{"counter", 1}}}
-	_, err := clientsCollection.Indexes().CreateOne(context.TODO(), indexModel)
-	if err != nil {
-		return err
-	}
-
-	indexModel = mongo.IndexModel{Keys: bson.D{{"id", 1}}}
+	//indexModel := mongo.IndexModel{Keys: bson.D{{"counter", 1}}}
+	//_, err := clientsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	indexModel := mongo.IndexModel{Keys: bson.D{{"id", 1}}}
 	segmentsCollection := s.client.Database("creator").Collection("segments")
-	_, err = segmentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	_, err := segmentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
 	if err != nil {
 		return err
 	}
@@ -195,38 +197,82 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	s.segments = append(s.segments, id)
 	s.mutex.Unlock()
 
+	date := time.Now().UTC()
+	date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+
 	clientsCollection := s.client.Database("creator").Collection("clients")
 
 	//filter := bson.D{{}, bson.D{{"_id", 1}}}
-	filter := bson.D{}
+	filter := bson.M{"nextuse": bson.M{"$lt": date}}
 	//opts := options.Find().SetSort(bson.D{{"rating", -1}}).SetLimit(2).SetSkip(1)
-	opts := options.Find().SetSort(bson.D{{"counter", 1}}).SetLimit(int64(size))
+
+	//opts := options.Find().SetSort(bson.D{{"counter", 1}}).SetLimit(int64(size))
+	opts := options.Find().SetProjection(bson.D{{"_id", 1}}).SetLimit(int64(size))
 
 	clientsCursor, err := clientsCollection.Find(context.TODO(), filter, opts)
 	if err != nil {
+		log.Println("ERROR 1: ", err.Error())
 		return id, err
 	}
 
-	//msisdns := make([]uint64, size, size)
+	var msisdns []storage.Msisdn
 	//var results []bson.M
-	var clients []storage.Client
-	if err = clientsCursor.All(context.TODO(), &clients); err != nil {
+	//var clients []storage.Client
+	if err = clientsCursor.All(context.TODO(), &msisdns); err != nil {
+		log.Println("ERROR 2: ", err.Error())
 		return id, err
 	}
+
+	size = len(msisdns)
+	//log.Println("msisdns: ", msisdns)
+	//segment := make([]interface{}, size, size)
+	//
+	//for i := 0; i < len(clients); i++ {
+	//	segmentItem := storage.SegmentItem{
+	//		Id:     id.String(),
+	//		Msisdn: clients[i].Msisdn,
+	//	}
+	//	segment[i] = segmentItem
+	//}
+
+	//segment := make([]interface{}, size, size)
+	//
+	//for i := 0; i < len(msisdns); i++ {
+	//	segmentItem := bson.D{
+	//		{"id", id.String()}, {"msisdn", msisdns[i]},
+	//	}
+	//	segment[i] = segmentItem
+	//}
 
 	segment := make([]interface{}, size, size)
+	numbers := make([]int64, size, size)
 
-	for i := 0; i < len(clients); i++ {
+	for i := 0; i < len(msisdns); i++ {
 		segmentItem := storage.SegmentItem{
 			Id:     id.String(),
-			Msisdn: clients[i].Msisdn,
+			Msisdn: msisdns[i].Msisdn,
 		}
 		segment[i] = segmentItem
+		numbers[i] = int64(msisdns[i].Msisdn)
 	}
+
+	result, err := clientsCollection.UpdateMany(
+		context.TODO(),
+		//bson.M{},
+		//bson.M{"title": "The Polyglot Developer Podcast"},
+		bson.M{
+			"_id": bson.M{"$in": numbers},
+		},
+		bson.D{
+			{"$set", bson.D{{"nextuse", date}}},
+		},
+	)
+	log.Printf("Updated %v Documents!\n", result.ModifiedCount)
 
 	segmentsCollection := s.client.Database("creator").Collection("segments")
 	_, err = segmentsCollection.InsertMany(context.TODO(), segment)
 	if err != nil {
+		log.Println("ERROR 3: ", err.Error())
 		return id, err
 	}
 

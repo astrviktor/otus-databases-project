@@ -105,6 +105,7 @@ func (s *Storage) CreateClients(size int) error {
 	start := time.Now()
 
 	counter := 0
+	date := time.Now().AddDate(0, 0, -10).Format("2006-01-02")
 
 	for i := 0; i < size; i++ {
 		client := storage.Client{}
@@ -116,7 +117,7 @@ func (s *Storage) CreateClients(size int) error {
 		client.Gender = gender[rand.Intn(3)]
 		client.Age = uint8(rand.Intn(83) + 18)
 		client.Income = float32(rand.Intn(9000000)/100 + 10000)
-		client.Counter = 0
+		client.NextUse = date
 
 		clients[counter-1] = client
 
@@ -300,8 +301,10 @@ func (s *Storage) DeleteClients() error {
 func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 	id := uuid.New()
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	s.segments = append(s.segments, id)
-	s.mutex.Unlock()
+
 	//idWithoutHyphens := strings.Replace(id.String(), "-", "", -1)
 
 	start := time.Now()
@@ -339,13 +342,14 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
+	date := time.Now()
 	segmentQuery := `INSERT INTO creator.segments(id, msisdn)
 	SELECT ?,msisdn
-	   FROM creator.clients
-       ORDER BY counter
-  	   LIMIT ?;`
+	FROM creator.clients
+    WHERE nextuse < ?
+  	LIMIT ?;`
 
-	_, err = tx.Exec(segmentQuery, id, size)
+	_, err = tx.Exec(segmentQuery, id, date.Format("2006-01-02"), size)
 	if err != nil {
 		log.Println("ERROR segment 4: ", err.Error())
 		return id, err
@@ -366,13 +370,15 @@ func (s *Storage) CreateSegment(size int) (uuid.UUID, error) {
 		return id, err
 	}
 
+	next := date.AddDate(0, 0, 10)
+
 	counterQuery := `ALTER TABLE creator.clients
-	UPDATE counter = counter + 1
+	UPDATE nextuse = ?
 	WHERE msisdn in (select msisdn from creator.segments where id = ?);`
 
 	//creator.` + idWithoutHyphens + `);`
 
-	_, err = tx.Exec(counterQuery, id)
+	_, err = tx.Exec(counterQuery, next.Format("2006-01-02"), id)
 	if err != nil {
 		log.Println("ERROR segment 6: ", err.Error())
 		return id, err
@@ -422,10 +428,10 @@ func (s *Storage) CreateClient(client storage.Client) error {
 	}
 
 	query := `INSERT INTO creator.clients
-    (msisdn, gender, age, income, counter)
+    (msisdn, gender, age, income, nextuse)
 	VALUES ($1, $2, $3, $4, $5);`
 
-	_, err = tx.Exec(query, client.Msisdn, client.Gender, client.Age, client.Income, client.Counter)
+	_, err = tx.Exec(query, client.Msisdn, client.Gender, client.Age, client.Income, client.NextUse)
 	if err != nil {
 		return err
 	}
@@ -464,7 +470,7 @@ func (s *Storage) CreateClientsBatch(clients []storage.Client) error {
 			string(clients[i].Gender),
 			clients[i].Age,
 			clients[i].Income,
-			clients[i].Counter,
+			clients[i].NextUse,
 		)
 		if err != nil {
 			log.Println("ERROR 3: ", err.Error())
