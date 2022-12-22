@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS clients (
 ) ENGINE = InnoDB;
 
 # CREATE INDEX clients_counter ON creator.clients (counter);
-# CREATE INDEX clients_nextuse ON creator.clients (nextuse);
+CREATE INDEX clients_nextuse ON creator.clients (nextuse);
 
 
 CREATE TABLE IF NOT EXISTS segments (

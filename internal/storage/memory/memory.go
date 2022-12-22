@@ -11,19 +11,25 @@ import (
 )
 
 type Storage struct {
-	clients  []storage.Client
-	segments map[uuid.UUID][]storage.Msisdn
-	mutex    *sync.RWMutex
+	description string
+	clients     []storage.Client
+	segments    map[uuid.UUID][]storage.Msisdn
+	mutex       *sync.RWMutex
 }
 
 func New() *Storage {
 	mutex := sync.RWMutex{}
 
 	return &Storage{
-		clients:  make([]storage.Client, 0),
-		segments: make(map[uuid.UUID][]storage.Msisdn),
-		mutex:    &mutex,
+		description: "Memory",
+		clients:     make([]storage.Client, 0),
+		segments:    make(map[uuid.UUID][]storage.Msisdn),
+		mutex:       &mutex,
 	}
+}
+
+func (s *Storage) GetDescription() string {
+	return s.description
 }
 
 func (s *Storage) CreateConnect() error {

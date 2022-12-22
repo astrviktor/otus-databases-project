@@ -19,6 +19,7 @@ import (
 )
 
 type Storage struct {
+	description          string
 	dsn                  string
 	dbMaxConnectAttempts int
 	mutex                *sync.RWMutex
@@ -30,12 +31,17 @@ func New(config config.DBConfig) *Storage {
 	mutex := sync.RWMutex{}
 
 	return &Storage{
+		description:          "PostgeSQL",
 		dsn:                  config.DSN,
 		dbMaxConnectAttempts: config.MaxConnectAttempts,
 		mutex:                &mutex,
 		db:                   nil,
 		segments:             nil,
 	}
+}
+
+func (s *Storage) GetDescription() string {
+	return s.description
 }
 
 func (s *Storage) CreateConnect() error {

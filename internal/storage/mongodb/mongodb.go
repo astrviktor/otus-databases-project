@@ -18,6 +18,7 @@ import (
 )
 
 type Storage struct {
+	description          string
 	dsn                  string
 	dbMaxConnectAttempts int
 	mutex                *sync.RWMutex
@@ -29,12 +30,17 @@ func New(config config.DBConfig) *Storage {
 	mutex := sync.RWMutex{}
 
 	return &Storage{
+		description:          "MongoDB",
 		dsn:                  config.DSN,
 		dbMaxConnectAttempts: config.MaxConnectAttempts,
 		mutex:                &mutex,
 		client:               nil,
 		segments:             nil,
 	}
+}
+
+func (s *Storage) GetDescription() string {
+	return s.description
 }
 
 func (s *Storage) CreateConnect() error {
@@ -130,15 +136,15 @@ func (s *Storage) CreateClients(size int) error {
 		}
 	}
 
-	//indexModel := mongo.IndexModel{Keys: bson.D{{"counter", 1}}}
-	//_, err := clientsCollection.Indexes().CreateOne(context.TODO(), indexModel)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	indexModel := mongo.IndexModel{Keys: bson.D{{"id", 1}}}
+	indexModel := mongo.IndexModel{Keys: bson.D{{"nextuse", 1}}}
+	_, err := clientsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil {
+		return err
+	}
+
+	indexModel = mongo.IndexModel{Keys: bson.D{{"id", 1}}}
 	segmentsCollection := s.client.Database("creator").Collection("segments")
-	_, err := segmentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	_, err = segmentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
 	if err != nil {
 		return err
 	}

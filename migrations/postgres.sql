@@ -4,7 +4,6 @@
 
 CREATE SCHEMA IF NOT EXISTS creator;
 
-
 CREATE TABLE IF NOT EXISTS creator.clients (
     msisdn bigint primary key,
     gender char(1),
@@ -13,16 +12,14 @@ CREATE TABLE IF NOT EXISTS creator.clients (
     nextuse date
 );
 
--- CREATE INDEX clients_counter ON creator.clients (counter);
--- CREATE INDEX clients_nextuse ON creator.clients (nextuse);
+
+CREATE INDEX clients_nextuse ON creator.clients (nextuse);
 
 CREATE TABLE IF NOT EXISTS creator.segments (
     id uuid,
     msisdn bigint
 );
 
--- CREATE INDEX segments_id ON creator.segments (id);
--- CREATE INDEX segments_msisdn ON creator.segments (msisdn);
 CREATE INDEX segments_id_msisdn ON creator.segments (id, msisdn);
 
 -- CREATE OR REPLACE PROCEDURE creator.create_clients(size int)
@@ -70,7 +67,7 @@ LANGUAGE plpgsql AS
 $$
 BEGIN
     INSERT INTO creator.segments(id, msisdn)
-    SELECT idx, msisdn
+    SELECT uuid, msisdn
     FROM creator.clients
     ORDER BY counter
     LIMIT size;

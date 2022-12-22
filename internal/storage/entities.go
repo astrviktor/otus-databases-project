@@ -6,6 +6,7 @@ import (
 )
 
 type Storage interface {
+	GetDescription() string
 	CreateConnect() error
 	CloseConnect()
 	CreateClients(size int) error
