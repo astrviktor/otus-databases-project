@@ -1,4 +1,4 @@
-FROM golang:1.19.3 as build
+FROM golang:1.19.4-buster as build
 
 ENV BIN_FILE /opt/otus-databases-project/otus-databases-project
 ENV CODE_DIR /go/src/

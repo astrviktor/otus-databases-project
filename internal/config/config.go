@@ -14,6 +14,7 @@ type Config struct {
 	Mysql      DBConfig
 	Mongodb    DBConfig
 	Clickhouse DBConfig
+	Tarantool  DBConfig
 }
 
 type HTTPServerConfig struct {
@@ -58,6 +59,8 @@ func DefaultConfig() Config {
 		Mongodb: DBConfig{DSN: "mongodb://root:password@10.5.0.8:27017",
 			MaxConnectAttempts: 5},
 		Clickhouse: DBConfig{DSN: "10.5.0.10:9000",
+			MaxConnectAttempts: 5},
+		Tarantool: DBConfig{DSN: "10.5.0.11:3301",
 			MaxConnectAttempts: 5},
 	}
 }

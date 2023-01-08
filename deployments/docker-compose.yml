@@ -195,11 +195,30 @@ services:
         aliases:
           - clickhouse
 
+  tarantool:
+    image: tarantool/tarantool:2.10.4-ubuntu
+    container_name: tarantool
+    environment:
+      TARANTOOL_USER_NAME: user
+      TARANTOOL_USER_PASSWORD: password
+    ports:
+      - "3301:3301"
+    volumes:
+      - volume_tarantool:/var/lib/tarantool
+    networks:
+      docker:
+        ipv4_address: 10.5.0.11
+        aliases:
+          - tarantool
+#  docker exec -i -t tarantool console
+
+
 volumes:
   volume_postgres:
   volume_mysql:
   volume_mongodb:
   volume_clickhouse:
+  volume_tarantool:
 
 networks:
   docker:

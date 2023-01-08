@@ -15,4 +15,7 @@ mongodb:
   maxConnectAttempts: 5
 clickhouse:
   dsn: 10.5.0.10:9000
-  maxConnectAttempts: 5  
+  maxConnectAttempts: 5
+tarantool:
+  dsn: 10.5.0.11:3301
+  maxConnectAttempts: 5

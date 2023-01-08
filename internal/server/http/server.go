@@ -8,6 +8,7 @@ import (
 	"github.com/astrviktor/otus-databases-project/internal/storage/mongodb"
 	"github.com/astrviktor/otus-databases-project/internal/storage/mysql"
 	"github.com/astrviktor/otus-databases-project/internal/storage/postgres"
+	"github.com/astrviktor/otus-databases-project/internal/storage/tarantool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net"
@@ -83,6 +84,19 @@ func (s *Server) ChangeDatabase(database string) error {
 		}
 
 		log.Println("database: clickhouse")
+		return nil
+	}
+
+	if database == "tarantool" {
+		s.storage.CloseConnect()
+		s.storage = tarantool.New(s.config.Tarantool)
+		err := s.storage.CreateConnect()
+		if err != nil {
+			log.Println("Tarantool create connection error:", err)
+			return err
+		}
+
+		log.Println("database: tarantool")
 		return nil
 	}
 

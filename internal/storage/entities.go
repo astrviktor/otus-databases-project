@@ -31,6 +31,20 @@ type ClientMongo struct {
 	NextUse time.Time `json:"nextuse" bson:"nextuse"`
 }
 
+type ClientTarantool struct {
+	Msisdn  uint64  `json:"msisdn"`
+	Gender  string  `json:"gender"`
+	Age     uint64  `json:"age"`
+	Income  float64 `json:"income"`
+	NextUse int64   `json:"nextuse"`
+}
+
+type GeoObject struct {
+	Id          string     `json:"id"`
+	Coordinates [2]float64 `json:"coordinates"`
+	Comment     string     `json:"comment"`
+}
+
 type Msisdn struct {
 	Msisdn uint64 `json:"msisdn" bson:"_id"`
 }
