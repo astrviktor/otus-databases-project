@@ -15,6 +15,7 @@ type Config struct {
 	Mongodb    DBConfig
 	Clickhouse DBConfig
 	Tarantool  DBConfig
+	Aerospike  DBConfig
 }
 
 type HTTPServerConfig struct {
@@ -23,6 +24,8 @@ type HTTPServerConfig struct {
 }
 
 type DBConfig struct {
+	Host               string `yaml:"host"`
+	Port               int    `yaml:"port"`
 	DSN                string `yaml:"dsn"`
 	MaxConnectAttempts int    `yaml:"maxConnectAttempts"`
 }

@@ -59,6 +59,7 @@ box.space.clients.index.nextuse:select({10}, {iterator='LT',limit=100})
 
 -- Обновление данных clients
 box.space.clients:update(79000000001, {{'=', 5, 10}})
+box.space.clients:update(79000000001, {{'=', 'nextuse', 11}})
 
 -- Удаление всех данных clients
 box.space.clients:truncate()

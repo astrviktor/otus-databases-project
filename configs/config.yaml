@@ -19,3 +19,7 @@ clickhouse:
 tarantool:
   dsn: 10.5.0.11:3301
   maxConnectAttempts: 5
+aerospike:
+  host: 10.5.0.12
+  port: 3000
+  maxConnectAttempts: 5

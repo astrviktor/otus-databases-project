@@ -39,6 +39,14 @@ type ClientTarantool struct {
 	NextUse int64   `json:"nextuse"`
 }
 
+type ClientAerospike struct {
+	Msisdn  int64   `json:"msisdn"`
+	Gender  string  `json:"gender"`
+	Age     int64   `json:"age"`
+	Income  float64 `json:"income"`
+	NextUse int64   `json:"nextuse"`
+}
+
 type GeoObject struct {
 	Id          string     `json:"id"`
 	Coordinates [2]float64 `json:"coordinates"`

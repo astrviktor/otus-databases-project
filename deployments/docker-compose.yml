@@ -15,73 +15,73 @@ services:
         aliases:
           - creator
 
-  prometheus:
-    image: prom/prometheus:v2.39.1
-    volumes:
-      - ./prometheus:/etc/prometheus/
-    container_name: prometheus
-    hostname: prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-    ports:
-      - 9090:9090
-    restart: unless-stopped
-    environment:
-      TZ: "Europe/Moscow"
-    networks:
-      docker:
-        ipv4_address: 10.5.0.3
-        aliases:
-          - prometheus
-
-  node-exporter:
-    image: prom/node-exporter:v1.4.0
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    container_name: node-exporter
-    hostname: node-exporter
-    command:
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-      - --collector.filesystem.ignored-mount-points
-      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
-    ports:
-      - 9100:9100
-    expose:
-      - 9100
-    restart: unless-stopped
-    environment:
-      TZ: "Europe/Moscow"
-    labels:
-      org.label-schema.group: "monitoring"
-    networks:
-      docker:
-        ipv4_address: 10.5.0.100
-        aliases:
-          - node-exporter
-
-  grafana:
-    image: grafana/grafana:9.2.3
-    user: root
-    depends_on:
-      - prometheus
-    ports:
-      - 3000:3000
+#  prometheus:
+#    image: prom/prometheus:v2.39.1
 #    volumes:
-#      - ./grafana:/var/lib/grafana
-#      - ./grafana/provisioning/:/etc/grafana/provisioning/
-    container_name: grafana
-    hostname: grafana
-    restart: unless-stopped
-    environment:
-      TZ: "Europe/Moscow"
-    networks:
-      docker:
-        ipv4_address: 10.5.0.4
-        aliases:
-          - grafana
+#      - ./prometheus:/etc/prometheus/
+#    container_name: prometheus
+#    hostname: prometheus
+#    command:
+#      - --config.file=/etc/prometheus/prometheus.yml
+#    ports:
+#      - 9090:9090
+#    restart: unless-stopped
+#    environment:
+#      TZ: "Europe/Moscow"
+#    networks:
+#      docker:
+#        ipv4_address: 10.5.0.3
+#        aliases:
+#          - prometheus
+
+#  node-exporter:
+#    image: prom/node-exporter:v1.4.0
+#    volumes:
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/rootfs:ro
+#    container_name: node-exporter
+#    hostname: node-exporter
+#    command:
+#      - --path.procfs=/host/proc
+#      - --path.sysfs=/host/sys
+#      - --collector.filesystem.ignored-mount-points
+#      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+#    ports:
+#      - 9100:9100
+#    expose:
+#      - 9100
+#    restart: unless-stopped
+#    environment:
+#      TZ: "Europe/Moscow"
+#    labels:
+#      org.label-schema.group: "monitoring"
+#    networks:
+#      docker:
+#        ipv4_address: 10.5.0.100
+#        aliases:
+#          - node-exporter
+
+#  grafana:
+#    image: grafana/grafana:9.2.3
+#    user: root
+#    depends_on:
+#      - prometheus
+#    ports:
+#      - 3000:3000
+##    volumes:
+##      - ./grafana:/var/lib/grafana
+##      - ./grafana/provisioning/:/etc/grafana/provisioning/
+#    container_name: grafana
+#    hostname: grafana
+#    restart: unless-stopped
+#    environment:
+#      TZ: "Europe/Moscow"
+#    networks:
+#      docker:
+#        ipv4_address: 10.5.0.4
+#        aliases:
+#          - grafana
 
   yandex-tank:
 #    image: direvius/yandex-tank
@@ -123,7 +123,7 @@ services:
           - postgres
 
   mysql:
-    image: mariadb:10.9.4-jammy #mysql:8.0.31-debian  #mysql:5.7.40-debian
+    image: mysql:8.0.31-debian #mariadb:10.9.4-jammy #mysql:5.7.40-debian
     container_name: mysql
     environment:
       - MYSQL_ROOT_PASSWORD=password
@@ -212,6 +212,37 @@ services:
           - tarantool
 #  docker exec -i -t tarantool console
 
+  aerospike:
+    image: aerospike:ce-6.2.0.2
+    container_name: aerospike
+    environment:
+      NAMESPACE: creator
+#      TARANTOOL_USER_NAME: user
+#      TARANTOOL_USER_PASSWORD: password
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+      - "3002:3002"
+    volumes:
+      - volume_aerospike:/opt/aerospike/data
+    networks:
+      docker:
+        ipv4_address: 10.5.0.12
+        aliases:
+          - aerospike
+# docker run -ti --net deployments_docker --link aerospike aerospike/aerospike-tools:8.1.0 aql -h 10.5.0.12 aerospike
+
+  amc:
+    image: aerospike/amc:latest
+    container_name: amc
+    ports:
+      - "8001:8001"
+    networks:
+      docker:
+        ipv4_address: 10.5.0.13
+        aliases:
+          - amc
+
 
 volumes:
   volume_postgres:
@@ -219,6 +250,7 @@ volumes:
   volume_mongodb:
   volume_clickhouse:
   volume_tarantool:
+  volume_aerospike:
 
 networks:
   docker:

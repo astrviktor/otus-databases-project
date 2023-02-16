@@ -45,5 +45,6 @@ yandex-tank:
 compose-down:
 	docker-compose -f deployments/docker-compose.yml down -v
 
-
+docker-volumes:
+	docker system df -v | grep "deployments_volume_"
 

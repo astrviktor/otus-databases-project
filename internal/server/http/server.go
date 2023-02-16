@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/astrviktor/otus-databases-project/internal/config"
+	"github.com/astrviktor/otus-databases-project/internal/storage/aerospike"
 	"github.com/astrviktor/otus-databases-project/internal/storage/clickhouse"
 	"github.com/astrviktor/otus-databases-project/internal/storage/mongodb"
 	"github.com/astrviktor/otus-databases-project/internal/storage/mysql"
@@ -97,6 +98,19 @@ func (s *Server) ChangeDatabase(database string) error {
 		}
 
 		log.Println("database: tarantool")
+		return nil
+	}
+
+	if database == "aerospike" {
+		s.storage.CloseConnect()
+		s.storage = aerospike.New(s.config.Aerospike)
+		err := s.storage.CreateConnect()
+		if err != nil {
+			log.Println("Aerospike create connection error:", err)
+			return err
+		}
+
+		log.Println("database: aerospike")
 		return nil
 	}
 
